@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+// The greeting service definition.
+service Tracker {
+  // Sends a greeting
+  rpc ProcessMeasurement (measurement) returns (track) {}
+}
+// The request message containing the user's name.
+message measurement {
+  double  x = 1;
+  double y = 2;
+  double z = 3;
+  double time = 4;
+}
+
+// The response message containing the greetings
+message track {
+  repeated bytes measurements = 1;
+  double x_velocity = 2;
+  double y_velocity = 3;
+  double z_velocity = 4;
+}
