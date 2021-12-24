@@ -4,10 +4,8 @@ import grpc
 import logging
 import os
 import sys
-import numpy as np
 
 from concurrent import futures
-from google.protobuf import text_format
 
 script_path = os.path.dirname(os.path.abspath( __file__ ))
 src_dir = os.path.dirname(script_path)
@@ -15,6 +13,8 @@ autogen_dir = os.path.join(src_dir,"auto_generated")
 sys.path.insert(1, autogen_dir)
 import measurement_pb2_grpc
 import measurement_pb2
+
+import TrackInterface as ti
 
 def input_args():
   parser = argparse.ArgumentParser(description='Run Tracker')
@@ -38,32 +38,11 @@ def input_args():
   return args
 
 class Tracker(measurement_pb2_grpc.TrackerServicer):
-    meas = []
+    def __init__(self) -> None:
+        super().__init__()
+        self.track_int =  ti.Kalman_filter()
     def ProcessMeasurement(self, request, context):
-        text_proto = text_format.MessageToString(request)
-        output_str = text_format.Parse(text_proto, measurement_pb2.measurement())
-        logging.info(f"request: {output_str}")
-        self.meas.append(request)
-        pred_vel = np.array([[0],[0],[0]])
-        if len(self.meas) >= 2:
-          dt = self.meas[-1].time - self.meas[-2].time
-          finalmeas = np.array([[self.meas[-1].x],
-                                [self.meas[-1].y],
-                                [self.meas[-1].z],])
-
-          initmeas = np.array([[self.meas[-2].x],
-                                [self.meas[-2].y],
-                                [self.meas[-2].z],])
-          pred_vel = (finalmeas - initmeas) / dt
-          print(f"{finalmeas} -{ initmeas} / ({dt})")
-          print(f"pred_vel {pred_vel}")
-
-        track_msg = measurement_pb2.track(x_velocity=pred_vel[0],
-                                          y_velocity=pred_vel[1],
-                                          z_velocity=pred_vel[2])
-        for i in range(len(self.meas)):
-          meas =  self.meas[i].SerializeToString()
-          track_msg.measurements.append(meas)
+        track_msg = self.track_int.add_measurement(request)
         return track_msg
 
 def serve(args):

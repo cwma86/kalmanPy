@@ -2,7 +2,9 @@
 import argparse
 import grpc
 import logging
+import numpy as np
 import os
+import random
 import sys
 import time
 
@@ -40,37 +42,41 @@ class Simulator:
   def __init__(self, x_init, y_init, z_init, 
                       x_vel=0, y_vel=0, z_vel=0, 
                       time=time.time()):
-    print(f"constructor time {time}")
     self.position = measurement_pb2.measurement(x=x_init,
                                                 y=y_init,
                                                 z=z_init,
                                                 time=time)
-    print(f"self.position.x: {self.position.x}")
-    print(f"self.position.y: {self.position.y}")
-    print(f"self.position.y: {self.position.time}")
     self.x_vel = x_vel
     self.y_vel = y_vel
     self.z_vel = z_vel
+    # error values
+    self.sigma = 0.5
 
   def predict_at_time(self, time):
+    # Predict the position forward
     dt = time - self.position.time
     if dt < 0:
       dt = 0
-    print(f"dt: {time} - {self.position.time} = {dt}")
-    x_pos = self.position.x + self.x_vel * dt
-    y_pos = self.position.y + self.y_vel * dt
-    z_pos = self.position.z + self.z_vel * dt
-    new_meas = measurement_pb2.measurement(x=x_pos,
-                                            y=y_pos,
-                                            z=z_pos,
+
+    pos = np.array([[self.position.x],
+                    [self.position.y],
+                    [self.position.z]])
+    vel = np.array([[self.x_vel],
+                    [self.y_vel],
+                    [self.z_vel]])
+    new_pos = pos + vel * dt    
+    # add uncertainty to the new position
+    new_pos = random.gauss(new_pos, self.sigma)
+
+    new_meas = measurement_pb2.measurement(x=new_pos[0],
+                                            y=new_pos[1],
+                                            z=new_pos[2],
                                             time=time)
     text_proto = text_format.MessageToString(new_meas)
     output_str = text_format.Parse(text_proto, measurement_pb2.measurement())
     print(f"output: \n {output_str}")
     return new_meas
     
-
-
 
 def run(args):
   starttime = time.time()
