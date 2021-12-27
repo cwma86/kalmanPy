@@ -44,6 +44,18 @@ class test_Kalman_Filter_Tracker(unittest.TestCase):
     self.assertAlmostEqual(new_track.y_velocity, 1.05, 2)
     self.assertAlmostEqual(new_track.z_velocity, 0.30, 2)
     self.assertAlmostEqual(len(new_track.measurements) , 2)
+
+    new_meas = measurement_pb2.measurement(x=2.0,
+                                        y=5.0,
+                                        z=3.0,
+                                        time=2)
+    new_track = tracker.add_measurement(new_meas)
+    logging.debug(f"x_velocity {new_track.x_velocity} y_velocity {new_track.y_velocity} z_velocity {new_track.z_velocity}")
+    self.assertAlmostEqual(new_track.x_velocity, 0.775, 2)
+    self.assertAlmostEqual(new_track.y_velocity, 1.525, 2)
+    self.assertAlmostEqual(new_track.z_velocity, 0.3999, 2)
+    self.assertEqual(len(new_track.measurements) , 3)
+
     logging.debug(f"test_Kalman_Filter_TrackerTest pass!")
 
 if __name__ == '__main__':
