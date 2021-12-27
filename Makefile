@@ -9,3 +9,6 @@ all:
 
 clean:
 	rm -rf src/auto_generated
+
+check:
+	python3 -m unittest discover ./tests
