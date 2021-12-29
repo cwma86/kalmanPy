@@ -13,9 +13,7 @@ autogen_dir = os.path.join(src_dir,"auto_generated")
 sys.path.insert(1, autogen_dir)
 import measurement_pb2_grpc
 
-import TrackInterface as ti
-import Inst_Vel_Tracker as ivt
-import Kalman_Filter_Tracker as kft
+from TrackManager import TrackManager
 
 def input_args():
   parser = argparse.ArgumentParser(description='Run Tracker')
@@ -34,8 +32,8 @@ def input_args():
   if args.verbose:
     logLevel = logging.DEBUG
   logging.basicConfig(
-    format='%(asctime)s,%(msecs)d %(levelname)-8s\
-       [%(filename)s:%(lineno)d] %(message)s',
+            format='%(asctime)s,%(msecs)d %(levelname)-2s ' +
+                   '[%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logLevel)
   logging.info(f"logging set to {logging.getLevelName(logLevel)}")
@@ -46,17 +44,9 @@ def input_args():
 class Tracker(measurement_pb2_grpc.TrackerServicer):
     def __init__(self, filter_type = 'kft') -> None:
         super().__init__()
-        if filter_type == 'kft':
-          self.track_int =  kft.Kalman_Filter_Tracker()
-          logging.info(f"Running tracker as Kalman filter")
-        elif filter_type == 'ivt':
-          self.track_int =  ivt.Inst_Vel_Tracker()
-          logging.info(f"Running tracker as instant velocity tracker")
-        else:
-          logging.error(f"Invalid tracker filter type selction {filter_type}")
-
+        self.track_int = TrackManager(filter_type)
     def ProcessMeasurement(self, request, context):
-        track_msg = self.track_int.add_measurement(request)
+        track_msg = self.track_int.process_measurement(request)
         return track_msg
 
 def serve(args):

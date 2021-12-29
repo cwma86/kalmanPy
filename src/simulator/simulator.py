@@ -29,8 +29,8 @@ def input_args():
   if args.verbose:
     logLevel = logging.DEBUG
   logging.basicConfig(
-    format='%(asctime)s,%(msecs)d %(levelname)-8s\
-       [%(filename)s:%(lineno)d] %(message)s',
+    format='%(asctime)s,%(msecs)d %(levelname)-2s ' +
+          '[%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logLevel)
   logging.info(f"logging set to {logging.getLevelName(logLevel)}")
@@ -42,40 +42,43 @@ class Simulator:
   def __init__(self, x_init, y_init, z_init, 
                       x_vel=0, y_vel=0, z_vel=0, 
                       time=time.time()):
-    self.position = measurement_pb2.measurement(x=x_init,
+    self.positions = [measurement_pb2.measurement(x=x_init,
                                                 y=y_init,
                                                 z=z_init,
-                                                time=time)
+                                                time=time)]
     self.x_vel = x_vel
     self.y_vel = y_vel
     self.z_vel = z_vel
     # error values
     self.sigma = 0.5
 
-  def predict_at_time(self, time):
+  def predict_at_time(self, time) -> measurement_pb2.measurement_group:
     # Predict the position forward
-    dt = time - self.position.time
-    if dt < 0:
-      dt = 0
+    new_meas_group = measurement_pb2.measurement_group()
+    for i in range(len(self.positions)):
+      dt = time - self.positions[i].time
+      if dt < 0:
+        dt = 0
 
-    pos = np.array([[self.position.x],
-                    [self.position.y],
-                    [self.position.z]])
-    vel = np.array([[self.x_vel],
-                    [self.y_vel],
-                    [self.z_vel]])
-    new_pos = pos + vel * dt    
-    # add uncertainty to the new position
-    new_pos = random.gauss(new_pos, self.sigma)
+      pos = np.array([[self.positions[i].x],
+                      [self.positions[i].y],
+                      [self.positions[i].z]])
+      vel = np.array([[self.x_vel],
+                      [self.y_vel],
+                      [self.z_vel]])
+      new_pos = pos + vel * dt    
+      # add uncertainty to the new position
+      new_pos = random.gauss(new_pos, self.sigma)
 
-    new_meas = measurement_pb2.measurement(x=new_pos[0],
-                                            y=new_pos[1],
-                                            z=new_pos[2],
-                                            time=time)
-    text_proto = text_format.MessageToString(new_meas)
-    output_str = text_format.Parse(text_proto, measurement_pb2.measurement())
-    print(f"output: \n {output_str}")
-    return new_meas
+      new_meas = measurement_pb2.measurement(x=new_pos[0],
+                                              y=new_pos[1],
+                                              z=new_pos[2],
+                                              time=time)
+      text_proto = text_format.MessageToString(new_meas)
+      output_str = text_format.Parse(text_proto, measurement_pb2.measurement())
+      print(f"output: \n {output_str}")
+      new_meas_group.measurements.append(new_meas.SerializeToString())
+    return new_meas_group
     
 
 def run(args):
@@ -91,10 +94,14 @@ def run(args):
         updatetime = time.time()
         measurement_update = sim.predict_at_time(updatetime)
         response = stub.ProcessMeasurement(measurement_update)
-        print(f"received velocity of x: {response.x_velocity}")
-        print(f"received velocity of y: {response.y_velocity}")
-        print(f"received velocity of z: {response.z_velocity}")
-        print(f"using : {len(response.measurements)} measurements")
+        for i in range(len(response.tracks)):
+          track = measurement_pb2.track()
+          track.ParseFromString(response.tracks[i])
+
+          print(f"received velocity of x: {track.x_velocity}")
+          print(f"received velocity of y: {track.y_velocity}")
+          print(f"received velocity of z: {track.z_velocity}")
+          print(f"using : {len(track.measurements)} measurements")
         time.sleep(5)
     except grpc.RpcError as rpc_error:
       print(f"failed to connect {rpc_error.code()}, retry in 5 seconds")
