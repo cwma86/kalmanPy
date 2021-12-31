@@ -67,14 +67,17 @@ class Simulator:
       vel = np.array([[self.x_vel],
                       [self.y_vel],
                       [self.z_vel]])
-      new_pos = pos + vel * dt    
+      new_true_pos = pos + vel * dt    
       # add uncertainty to the new position
-      new_pos = random.gauss(new_pos, self.sigma)
+      new_pos = random.gauss(new_true_pos, self.sigma)
 
       new_meas = measurement_pb2.measurement(x=new_pos[0],
                                               y=new_pos[1],
                                               z=new_pos[2],
-                                              time=time)
+                                              time=time,
+                                              true_x=new_true_pos[0],
+                                              true_y=new_true_pos[1],
+                                              true_z=new_true_pos[2])
       text_proto = text_format.MessageToString(new_meas)
       output_str = text_format.Parse(text_proto, measurement_pb2.measurement())
       print(f"output: \n {output_str}")

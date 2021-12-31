@@ -18,10 +18,13 @@ message measurement_group{
 
 // The request message containing the user's name.
 message measurement {
-  double  x = 1;
+  double x = 1;
   double y = 2;
   double z = 3;
   double time = 4;
+  double true_x = 5;
+  double true_y = 6;
+  double true_z = 7;
 }
 
 message track_group{

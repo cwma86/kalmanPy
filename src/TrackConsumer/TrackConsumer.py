@@ -38,24 +38,44 @@ def input_args():
   return args
 
 class TrackWriter(measurement_pb2_grpc.TrackProducerServicer):
-  def __init__(self) -> None:
+  def __init__(self, trackfile) -> None:
+    self.trackfile = trackfile
     pass
 
   def ProcessTrack(self, request, context):
-    for i in range(len(request.tracks)):
-      track = measurement_pb2.track()
-      track.ParseFromString(request.tracks[i])
+    with open(self.trackfile, "a") as myfile:
+      for i in range(len(request.tracks)):
+        track = measurement_pb2.track()
+        track.ParseFromString(request.tracks[i])
 
-      print(f"received velocity of x: {track.x_velocity}")
-      print(f"received velocity of y: {track.y_velocity}")
-      print(f"received velocity of z: {track.z_velocity}")
-      print(f"using : {len(track.measurements)} measurements")
+        print(f"received velocity of x: {track.x_velocity}")
+        print(f"received velocity of y: {track.y_velocity}")
+        print(f"received velocity of z: {track.z_velocity}")
+        print(f"using : {len(track.measurements)} measurements")
+        myfile.write(f"trk {track.x_velocity} {track.y_velocity} {track.z_velocity}\n")
+        for i in range(len(track.measurements)):
+          meas = measurement_pb2.measurement()
+          meas.ParseFromString(track.measurements[i])
+
+          myfile.write(f"meas {meas.x} " +
+                       f"{meas.y} " +
+                       f"{meas.z} " + 
+                       f"{meas.true_x} " +
+                       f"{meas.true_y} " +
+                       f"{meas.true_z}\n")
+
     return google_dot_protobuf_dot_empty__pb2.Empty()
 
 
 def serve(args):
+    trackfile = os.path.join(script_path, "track.track" )
+    if (os.path.exists(trackfile)):
+      os.remove(trackfile)
+    with open(trackfile, "w") as myfile:
+      myfile.write(f"#trk vel_x vel_y vel_z\n")
+      myfile.write(f"#meas x y z true_x true_y true_z\n")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    measurement_pb2_grpc.add_TrackProducerServicer_to_server(TrackWriter(), 
+    measurement_pb2_grpc.add_TrackProducerServicer_to_server(TrackWriter(trackfile), 
                                                              server)
     server.add_insecure_port('[::]:' + str(args.recvport))
     server.start()

@@ -20,6 +20,8 @@ def input_args():
   parser = argparse.ArgumentParser(description='Run Tracker')
   parser.add_argument('-r', '--recvport',type=int, default=50051,
                     help='recieve port')
+  parser.add_argument('-s', '--sendserver',type=str, default="localhost:50052",
+                    help='send servcer in host:port pattern default: \"localhost:50052\"')
   parser.add_argument('-f', '--filter', default="kft",
                     help='Select tracker filter type' +
                           '  option - description' +
@@ -57,7 +59,7 @@ class Tracker(measurement_pb2_grpc.MeasurementProducerServicer):
         return google_dot_protobuf_dot_empty__pb2.Empty()
 
 def serve(args):
-    channel = grpc.insecure_channel("localhost:50052")
+    channel = grpc.insecure_channel(args.sendserver)
     stub = measurement_pb2_grpc.TrackProducerStub(channel)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
