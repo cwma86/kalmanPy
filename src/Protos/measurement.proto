@@ -37,4 +37,5 @@ message track {
   double x_velocity = 2;
   double y_velocity = 3;
   double z_velocity = 4;
+  int32 track_id = 5;
 }

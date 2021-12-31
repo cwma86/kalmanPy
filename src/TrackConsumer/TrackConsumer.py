@@ -44,15 +44,16 @@ class TrackWriter(measurement_pb2_grpc.TrackProducerServicer):
 
   def ProcessTrack(self, request, context):
     with open(self.trackfile, "a") as myfile:
+      logging.info(f"received track group with {len(request.tracks)} tracks, logging to file.")
       for i in range(len(request.tracks)):
         track = measurement_pb2.track()
         track.ParseFromString(request.tracks[i])
 
-        print(f"received velocity of x: {track.x_velocity}")
-        print(f"received velocity of y: {track.y_velocity}")
-        print(f"received velocity of z: {track.z_velocity}")
-        print(f"using : {len(track.measurements)} measurements")
-        myfile.write(f"trk {track.x_velocity} {track.y_velocity} {track.z_velocity}\n")
+        logging.debug(f"received velocity of x: {track.x_velocity}")
+        logging.debug(f"received velocity of y: {track.y_velocity}")
+        logging.debug(f"received velocity of z: {track.z_velocity}")
+        logging.debug(f"using : {len(track.measurements)} measurements")
+        myfile.write(f"trk {track.x_velocity} {track.y_velocity} {track.z_velocity} {track.track_id}\n")
         for i in range(len(track.measurements)):
           meas = measurement_pb2.measurement()
           meas.ParseFromString(track.measurements[i])
@@ -72,7 +73,7 @@ def serve(args):
     if (os.path.exists(trackfile)):
       os.remove(trackfile)
     with open(trackfile, "w") as myfile:
-      myfile.write(f"#trk vel_x vel_y vel_z\n")
+      myfile.write(f"#trk vel_x vel_y vel_z track_id\n")
       myfile.write(f"#meas x y z true_x true_y true_z\n")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     measurement_pb2_grpc.add_TrackProducerServicer_to_server(TrackWriter(trackfile), 

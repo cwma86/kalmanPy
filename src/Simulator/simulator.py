@@ -56,10 +56,10 @@ class Simulator:
     # Predict the position forward
     new_meas_group = measurement_pb2.measurement_group()
     for i in range(len(self.positions)):
-      print(f"time {time}")
       dt = time - self.positions[i].time
       if dt < 0:
         dt = 0
+      logging.debug(f"predicting measurement position {i} to time {time} with a dt of {dt}")
 
       pos = np.array([[self.positions[i].x],
                       [self.positions[i].y],
@@ -80,15 +80,16 @@ class Simulator:
                                               true_z=new_true_pos[2])
       text_proto = text_format.MessageToString(new_meas)
       output_str = text_format.Parse(text_proto, measurement_pb2.measurement())
-      print(f"output: \n {output_str}")
+      logging.debug(f"output: \n {output_str}")
       new_meas_group.measurements.append(new_meas.SerializeToString())
+    logging.info(f"Producing a new measurement group with {len(new_meas_group.measurements)} measurements")
     return new_meas_group
     
 
 def run(args):
   starttime = time.time()
-  print(f"run time {starttime}")
-  sim = Simulator(1, 2, 3,
+  logging.debug(f"run time {starttime}")
+  sim = Simulator(10, 12, 13,
                   x_vel=1, y_vel=2, z_vel=0.5, 
                       time=starttime)
   while True:
@@ -96,12 +97,12 @@ def run(args):
       with grpc.insecure_channel(args.hostport) as channel:
         stub = measurement_pb2_grpc.MeasurementProducerStub(channel)
         updatetime = time.time()
-        print(f"updatetiem {updatetime}")
+        logging.debug(f"updatetiem {updatetime}")
         measurement_update = sim.predict_at_time(updatetime)
         stub.ProcessMeasurement(measurement_update)
         time.sleep(5)
     except grpc.RpcError as rpc_error:
-      print(f"failed to connect {rpc_error.code()}, retry in 5 seconds")
+      logging.warning(f"failed to connect {rpc_error.code()}, retry in 5 seconds")
       time.sleep(5)
 
 

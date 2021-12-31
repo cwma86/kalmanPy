@@ -53,6 +53,7 @@ class Tracker(measurement_pb2_grpc.MeasurementProducerServicer):
     def ProcessMeasurement(self, request, context):
         track_msg = self.track_int.process_measurement(request)
         if self.stub:
+          logging.info(f"publishing track group")
           self.stub.ProcessTrack(track_msg)
         else:
           logging.warning(f"invalid stub")

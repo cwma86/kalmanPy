@@ -88,7 +88,7 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
         The current stored Proc cov matrix predicted forward
     """
     dt = time - self.time
-    logging.info(f"dt: {dt}")
+    logging.debug(f"dt: {dt}")
     A = np.identity(6)
     A[0][3] = dt
     A[1][4] = dt
@@ -132,7 +132,7 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
     """
     C = np.identity(3)
     Y = C @ X + z
-    logging.info(f"new measured value: {Y}")
+    logging.debug(f"new measured value: {Y}")
     new_X, new_P = self.predict(time)
     self.update(new_X, new_P, time, Y)
 
@@ -188,7 +188,6 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
                          [0]])
       self.time = meas.time
     else:
-      print(f"meastime {meas.time}")
       self.measurement_input( X, meas.time, z=1.0)
     self.meas_list.append(meas)
     track_msg = measurement_pb2.track(x_velocity=self.X[3],
