@@ -9,7 +9,7 @@ SOURCE_PATH = os.path.join(
 )
 sys.path.append(SOURCE_PATH)
 sys.path.append(os.path.join(SOURCE_PATH, 'auto_generated'))
-sys.path.append(os.path.join(SOURCE_PATH, 'tracker'))
+sys.path.append(os.path.join(SOURCE_PATH, 'Tracker'))
 import TrackInterface as ti
 import measurement_pb2
 

@@ -12,18 +12,14 @@ src_dir = os.path.dirname(script_path)
 autogen_dir = os.path.join(src_dir,"auto_generated")
 sys.path.insert(1, autogen_dir)
 import measurement_pb2_grpc
+import measurement_pb2
 
-from TrackManager import TrackManager
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 def input_args():
   parser = argparse.ArgumentParser(description='Run Tracker')
-  parser.add_argument('-r', '--recvport',type=int, default=50051,
+  parser.add_argument('-r', '--recvport',type=int, default=50052,
                     help='recieve port')
-  parser.add_argument('-f', '--filter', default="kft",
-                    help='Select tracker filter type' +
-                          '  option - description' +
-                          '  kft = kalman filter tracker' +
-                          '  ivt = instantaneous velocity tracker')
   parser.add_argument('-v', '--verbose', action='store_true',
                     help='Verbose logging')
   args = parser.parse_args()
@@ -41,18 +37,26 @@ def input_args():
 
   return args
 
-class Tracker(measurement_pb2_grpc.TrackerServicer):
-    def __init__(self, filter_type = 'kft') -> None:
-        super().__init__()
-        self.track_int = TrackManager(filter_type)
-    def ProcessMeasurement(self, request, context):
-        track_msg = self.track_int.process_measurement(request)
-        return track_msg
+class TrackWriter(measurement_pb2_grpc.TrackProducerServicer):
+  def __init__(self) -> None:
+    pass
+
+  def ProcessTrack(self, request, context):
+    for i in range(len(request.tracks)):
+      track = measurement_pb2.track()
+      track.ParseFromString(request.tracks[i])
+
+      print(f"received velocity of x: {track.x_velocity}")
+      print(f"received velocity of y: {track.y_velocity}")
+      print(f"received velocity of z: {track.z_velocity}")
+      print(f"using : {len(track.measurements)} measurements")
+    return google_dot_protobuf_dot_empty__pb2.Empty()
+
 
 def serve(args):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    measurement_pb2_grpc.add_TrackerServicer_to_server(Tracker(args.filter), 
-                                                        server)
+    measurement_pb2_grpc.add_TrackProducerServicer_to_server(TrackWriter(), 
+                                                             server)
     server.add_insecure_port('[::]:' + str(args.recvport))
     server.start()
     server.wait_for_termination()

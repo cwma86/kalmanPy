@@ -1,11 +1,17 @@
 syntax = "proto3";
+import "google/protobuf/empty.proto";
 
 // The greeting service definition.
-service Tracker {
+service MeasurementProducer {
   // Sends a greeting
-  rpc ProcessMeasurement (measurement_group) returns (track_group) {}
+  rpc ProcessMeasurement (measurement_group) returns (google.protobuf.Empty) {}
 }
 
+// The greeting service definition.
+service TrackProducer {
+  // Sends a greeting
+  rpc ProcessTrack (track_group) returns (google.protobuf.Empty) {}
+}
 message measurement_group{
   repeated bytes measurements = 1;
 }

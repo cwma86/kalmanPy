@@ -9,7 +9,7 @@ SOURCE_PATH = os.path.join(
 )
 sys.path.append(SOURCE_PATH)
 sys.path.append(os.path.join(SOURCE_PATH, 'auto_generated'))
-sys.path.append(os.path.join(SOURCE_PATH, 'tracker'))
+sys.path.append(os.path.join(SOURCE_PATH, 'Tracker'))
 import Kalman_Filter_Tracker as kft
 import measurement_pb2
 
@@ -40,9 +40,9 @@ class test_Kalman_Filter_Tracker(unittest.TestCase):
                                         time=1)
     new_track = tracker.add_measurement(new_meas)
     logging.debug(f"x_velocity {new_track.x_velocity} y_velocity {new_track.y_velocity} z_velocity {new_track.z_velocity}")
-    self.assertAlmostEqual(new_track.x_velocity, 0.55, 2)
-    self.assertAlmostEqual(new_track.y_velocity, 1.05, 2)
-    self.assertAlmostEqual(new_track.z_velocity, 0.30, 2)
+    self.assertAlmostEqual(new_track.x_velocity, 0.80, 2)
+    self.assertAlmostEqual(new_track.y_velocity, 1.20, 2)
+    self.assertAlmostEqual(new_track.z_velocity, 0.60, 2)
     self.assertAlmostEqual(len(new_track.measurements) , 2)
 
     new_meas = measurement_pb2.measurement(x=2.0,
@@ -51,9 +51,9 @@ class test_Kalman_Filter_Tracker(unittest.TestCase):
                                         time=2)
     new_track = tracker.add_measurement(new_meas)
     logging.debug(f"x_velocity {new_track.x_velocity} y_velocity {new_track.y_velocity} z_velocity {new_track.z_velocity}")
-    self.assertAlmostEqual(new_track.x_velocity, 0.775, 2)
-    self.assertAlmostEqual(new_track.y_velocity, 1.525, 2)
-    self.assertAlmostEqual(new_track.z_velocity, 0.3999, 2)
+    self.assertAlmostEqual(new_track.x_velocity, 0.860, 2)
+    self.assertAlmostEqual(new_track.y_velocity, 1.440, 2)
+    self.assertAlmostEqual(new_track.z_velocity, 0.570, 2)
     self.assertEqual(len(new_track.measurements) , 3)
 
     logging.debug(f"test_Kalman_Filter_TrackerTest pass!")

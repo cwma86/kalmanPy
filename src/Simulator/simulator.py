@@ -56,6 +56,7 @@ class Simulator:
     # Predict the position forward
     new_meas_group = measurement_pb2.measurement_group()
     for i in range(len(self.positions)):
+      print(f"time {time}")
       dt = time - self.positions[i].time
       if dt < 0:
         dt = 0
@@ -90,18 +91,11 @@ def run(args):
   while True:
     try:
       with grpc.insecure_channel(args.hostport) as channel:
-        stub = measurement_pb2_grpc.TrackerStub(channel)
+        stub = measurement_pb2_grpc.MeasurementProducerStub(channel)
         updatetime = time.time()
+        print(f"updatetiem {updatetime}")
         measurement_update = sim.predict_at_time(updatetime)
-        response = stub.ProcessMeasurement(measurement_update)
-        for i in range(len(response.tracks)):
-          track = measurement_pb2.track()
-          track.ParseFromString(response.tracks[i])
-
-          print(f"received velocity of x: {track.x_velocity}")
-          print(f"received velocity of y: {track.y_velocity}")
-          print(f"received velocity of z: {track.z_velocity}")
-          print(f"using : {len(track.measurements)} measurements")
+        stub.ProcessMeasurement(measurement_update)
         time.sleep(5)
     except grpc.RpcError as rpc_error:
       print(f"failed to connect {rpc_error.code()}, retry in 5 seconds")

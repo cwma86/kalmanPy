@@ -51,7 +51,7 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
     self.X = None # State matrix (pos/vel)
 
     # TODO find better way to initialize P
-    self.P = np.identity(6) # Process cov matrix
+    self.P = np.identity(6) * 0.5 # Process cov matrix
 
     # TODO figure out how to use R value
     self.R =  np.zeros((3,3)) #np.array([]) # Sensor Noise cov Matrix
@@ -101,8 +101,12 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
                   [0.0         , 0            , dt          ]])
 
     new_x = A @ self.X + B @ self.u + self.w
-    logging.info(f"new measurement prediction: {new_x}")
+    logging.debug(f"new measurement prediction: \n{new_x}")
     new_P = A @ self.P @ A.T + self.Q
+    logging.debug(f"A: \n{A}")
+    logging.debug(f"old P: \n{self.P}")
+    logging.debug(f"new P: \n{new_P}")
+
     return new_x, new_P
 
   def measurement_input(self, X, time, z):
@@ -130,10 +134,9 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
     Y = C @ X + z
     logging.info(f"new measured value: {Y}")
     new_X, new_P = self.predict(time)
-    self.update(new_X, new_P, Y)
-    self.time = time
+    self.update(new_X, new_P, time, Y)
 
-  def update(self, new_X, new_P, Y):
+  def update(self, new_X, new_P, time, Y):
     """
       Update the current filter state
 
@@ -155,13 +158,21 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
     H[0][0] = 1
     H[1][1] = 1
     H[2][2] = 1
-    print(f"H: \n {H}")
+    H[0][3] = 1
+    H[1][4] = 1
+    H[2][5] = 1
     s = H @ new_P @ H.T + self.R
     K =  new_P @ H.T @ np.linalg.inv(s) # Kalman gain
-    print(f"K {K}")
-    print(f"{Y - H @ new_X}")
-    print(f"{K @ (Y - H @ new_X)}")
     self.X = new_X + K @ (Y - H @ new_X)
+    logging.debug(f"Updating filter X: \n {self.X}")
+
+    self.P = new_P
+    logging.debug(f"Updating filter P: \n {self.P}")
+
+    self.time = time
+    logging.debug(f"Updating filter time: \n {self.time}")
+
+
 
   def add_measurement(self, 
                       meas: measurement_pb2.measurement) -> measurement_pb2.track:
@@ -177,8 +188,8 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
                          [0]])
       self.time = meas.time
     else:
-      self.measurement_input( X, meas.time, z=0.1)
-    logging.info(f"self.X \n {self.X}")
+      print(f"meastime {meas.time}")
+      self.measurement_input( X, meas.time, z=1.0)
     self.meas_list.append(meas)
     track_msg = measurement_pb2.track(x_velocity=self.X[3],
                                       y_velocity=self.X[4],
