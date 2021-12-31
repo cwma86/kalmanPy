@@ -17,6 +17,10 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 from TrackManager import TrackManager
 
 def input_args():
+  """
+    Input argument parser
+    ...
+  """
   parser = argparse.ArgumentParser(description='Run Tracker')
   parser.add_argument('-r', '--recvport',type=int, default=50051,
                     help='recieve port')
@@ -45,21 +49,50 @@ def input_args():
   return args
 
 class Tracker(measurement_pb2_grpc.MeasurementProducerServicer):
+    """
+      A Class used for consuming measurements, filtering the data, and 
+      associating them into tracks
+
+      Attributes
+      --------
+      track_int: TrackManager
+        The object that manages track state and produces new track group messages
+      stub: measurement_pb2_grpc.TrackProducerStub
+        The object used to allow for connection between the track and track consumers
+      
+      Methods
+      --------
+      ProcessMeasurement()
+        implementation of the protobuf defined service method used to process
+        measurement group messages that have been created by producers
+    """
     def __init__(self, stub, filter_type = 'kft') -> None:
         super().__init__()
         self.track_int = TrackManager(filter_type)
         self.stub = stub
 
     def ProcessMeasurement(self, request, context):
-        track_msg = self.track_int.process_measurement(request)
-        if self.stub:
-          logging.info(f"publishing track group")
-          self.stub.ProcessTrack(track_msg)
-        else:
-          logging.warning(f"invalid stub")
-        return google_dot_protobuf_dot_empty__pb2.Empty()
+      """
+        implementation of the protobuf defined service method used to process
+        measurement group messages that have been created by producers
+
+        Parameters
+        ---------
+        request : measurement_pb2.measurement_group
+          measurement group being provided to the tracker
+      """
+      track_msg = self.track_int.process_measurement(request)
+      if self.stub:
+        logging.info(f"publishing track group")
+        self.stub.ProcessTrack(track_msg)
+      else:
+        logging.warning(f"invalid stub")
+      return google_dot_protobuf_dot_empty__pb2.Empty()
 
 def serve(args):
+    """
+      Create the grpc service server for processing measurement groups
+    """
     channel = grpc.insecure_channel(args.sendserver)
     stub = measurement_pb2_grpc.TrackProducerStub(channel)
 

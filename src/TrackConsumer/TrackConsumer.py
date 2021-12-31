@@ -17,6 +17,10 @@ import measurement_pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 def input_args():
+  """
+    Input argument parser
+    ...
+  """
   parser = argparse.ArgumentParser(description='Run Tracker')
   parser.add_argument('-r', '--recvport',type=int, default=50052,
                     help='recieve port')
