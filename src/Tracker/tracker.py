@@ -14,7 +14,7 @@ sys.path.insert(1, autogen_dir)
 import measurement_pb2_grpc
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
-from TrackManager import TrackManager
+from TrackStrategyFactory import TrackStrategyFactory
 
 def input_args():
   """
@@ -55,7 +55,7 @@ class Tracker(measurement_pb2_grpc.MeasurementProducerServicer):
 
       Attributes
       --------
-      track_int: TrackManager
+      track_int: TrackStrategyFactory
         The object that manages track state and produces new track group messages
       stub: measurement_pb2_grpc.TrackProducerStub
         The object used to allow for connection between the track and track consumers
@@ -68,7 +68,7 @@ class Tracker(measurement_pb2_grpc.MeasurementProducerServicer):
     """
     def __init__(self, stub, filter_type = 'kft') -> None:
         super().__init__()
-        self.track_int = TrackManager(filter_type)
+        self.track_int = TrackStrategyFactory(filter_type)
         self.stub = stub
 
     def ProcessMeasurement(self, request, context):

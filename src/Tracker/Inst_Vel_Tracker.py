@@ -1,9 +1,9 @@
 import numpy as np
 
-import TrackInterface as ti
+import trackStrategyInterface as ti
 import measurement_pb2
 
-class Inst_Vel_Tracker(ti.TrackInterface):
+class Inst_Vel_Tracker(ti.trackStrategyInterface):
   def __init__(self):
       super().__init__()
       self.meas_list = []

@@ -1,12 +1,13 @@
 import logging
 import numpy as np
 
-import TrackInterface as ti 
+import trackStrategyInterface as ti 
 import measurement_pb2
 
-class Kalman_Filter_Tracker(ti.TrackInterface):
+class Kalman_Filter_Tracker(ti.trackStrategyInterface):
   """
-    A class used to represent a Kalman filter
+    A class used to represent a Kalman filter that can be used as an 
+    implementation of a common tracking strategy
 
     ...
 
@@ -51,7 +52,7 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
     self.X = None # State matrix (pos/vel)
 
     # TODO find better way to initialize P
-    self.P = np.identity(6) * 0.5 # Process cov matrix
+    self.P = np.identity(6) * 1.0 # Process cov matrix
 
     # TODO figure out how to use R value
     self.R =  np.zeros((3,3)) #np.array([]) # Sensor Noise cov Matrix
@@ -67,6 +68,7 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
                       [0]]) # np.array([]) # pred state noise matrix
     # TODO figure out how to use Q value
     self.Q = np.zeros((6,6)) # np.array([]) # process noise cov matrix
+    self.Q = np.ones((6,6)) # np.array([]) # process noise cov matrix
     self.time = 0 # state update time 
     self.meas_list = []
 
@@ -190,7 +192,10 @@ class Kalman_Filter_Tracker(ti.TrackInterface):
     else:
       self.measurement_input( X, meas.time, z=1.0)
     self.meas_list.append(meas)
-    track_msg = measurement_pb2.track(x_velocity=self.X[3],
+    track_msg = measurement_pb2.track(x_pred_pos=self.X[0],
+                                      y_pred_pos=self.X[1],
+                                      z_pred_pos=self.X[2],
+                                      x_velocity=self.X[3],
                                       y_velocity=self.X[4],
                                       z_velocity=self.X[5])
     for i in range(len(self.meas_list)):

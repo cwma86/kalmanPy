@@ -42,6 +42,23 @@ def input_args():
   return args
 
 class TrackWriter(measurement_pb2_grpc.TrackProducerServicer):
+  """
+    A class that functions as a track message group consumer and writes
+    track data to files
+
+    Attributes
+    -----------
+    trackfile: string
+      The file path to the location of the file that will store all the track
+      message group data
+
+    Methods
+    -----------
+
+  ProcessTrack()
+    Implementation of the protobuf defined service interface used to consume
+    track groups
+  """
   def __init__(self, trackfile) -> None:
     self.trackfile = trackfile
     pass
@@ -57,7 +74,8 @@ class TrackWriter(measurement_pb2_grpc.TrackProducerServicer):
         logging.debug(f"received velocity of y: {track.y_velocity}")
         logging.debug(f"received velocity of z: {track.z_velocity}")
         logging.debug(f"using : {len(track.measurements)} measurements")
-        myfile.write(f"trk {track.x_velocity} {track.y_velocity} {track.z_velocity} {track.track_id}\n")
+        myfile.write(f"trk {track.x_pred_pos} {track.y_pred_pos} {track.z_pred_pos} " +
+                     f"{track.x_velocity} {track.y_velocity} {track.z_velocity} {track.track_id}\n")
         for i in range(len(track.measurements)):
           meas = measurement_pb2.measurement()
           meas.ParseFromString(track.measurements[i])
@@ -73,11 +91,14 @@ class TrackWriter(measurement_pb2_grpc.TrackProducerServicer):
 
 
 def serve(args):
+    """
+      Creates the grpc server for processing track groups
+    """
     trackfile = os.path.join(script_path, "track.track" )
     if (os.path.exists(trackfile)):
       os.remove(trackfile)
     with open(trackfile, "w") as myfile:
-      myfile.write(f"#trk vel_x vel_y vel_z track_id\n")
+      myfile.write(f"#trk x_pred_pos y_pred_pos z_pred_pos vel_x vel_y vel_z track_id\n")
       myfile.write(f"#meas x y z true_x true_y true_z\n")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     measurement_pb2_grpc.add_TrackProducerServicer_to_server(TrackWriter(trackfile), 

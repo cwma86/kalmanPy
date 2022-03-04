@@ -26,8 +26,13 @@ def input_args():
   parser = argparse.ArgumentParser(description='Run Tracker')
   parser.add_argument('-s', '--hostport', default='localhost:50051',
                     help='server host port')
+  parser.add_argument('-f', '--filepath',
+                    help='path to write simulator data to file')
+
   parser.add_argument('-v', '--verbose', action='store_true',
                     help='Verbose logging')
+  parser.add_argument('-t', '--time', default=120, type=int,
+                    help='Length of the scenario in seconds (default:120)')
   args = parser.parse_args()
 
   # initialize logger format
@@ -73,7 +78,8 @@ class Simulator:
     
   """
   def __init__(self, x_init, y_init, z_init, 
-                      x_vel=0, y_vel=0, z_vel=0, 
+                      x_vel=0, y_vel=0, z_vel=0,
+                      x_acc=0, y_acc=0, z_acc=0,
                       time=time.time()):
     # TODO this currently only implements a single simulated target
     # This should be updated to maintain multiple targets
@@ -84,11 +90,13 @@ class Simulator:
     self.x_vel = x_vel
     self.y_vel = y_vel
     self.z_vel = z_vel
-
+    self.x_acc = x_acc
+    self.y_acc = y_acc
+    self.z_acc = z_acc
     # TODO assumes equal error values in each corrdinate direction
     # It would be good to improve this to provide a more detailed uncertatiny
     # error values
-    self.sigma = 0.5
+    self.sigma = 0.1
 
   def predict_at_time(self, time) -> measurement_pb2.measurement_group:
     """
@@ -125,10 +133,16 @@ class Simulator:
       vel = np.array([[self.x_vel],
                       [self.y_vel],
                       [self.z_vel]])
-      new_true_pos = pos + vel * dt    
+      acc = np.array([[self.x_acc],
+                      [self.y_acc],
+                      [self.z_acc]])
+      new_true_pos = pos + vel * dt + 0.5 * acc ** 2    
+      new_true_pos = np.around(new_true_pos,4)
+      print(f"new_true_pos {new_true_pos}")
       # add uncertainty to the new position
       new_pos = random.gauss(new_true_pos, self.sigma)
-
+      new_pos = np.around(new_pos,3)
+      print(f"new_pos {new_pos}")
       new_meas = measurement_pb2.measurement(x=new_pos[0],
                                               y=new_pos[1],
                                               z=new_pos[2],
@@ -145,33 +159,74 @@ class Simulator:
     return new_meas_group
     
 
+def initialize_track_creation():
+  # Set initial positions for the targets to be simulated
+  init_x = random.uniform(0,100)
+  init_y = random.uniform(0,100)
+  init_z = random.uniform(0,100)
+
+  # Create a random vector with a mag between 400 and 600
+  rand_Vector = np.random.randint(0, 100, size=(3))
+  rand_UnitVector = rand_Vector / np.linalg.norm(rand_Vector)
+  rand_mag = random.uniform(400, 600) # in MPH
+  rand_mag = rand_mag/60/60 # in MPS
+  rand_Vector = rand_UnitVector * rand_mag
+  rand_Vector = np.around(rand_Vector, 4)
+
+  velx = rand_Vector[0]
+  vely = rand_Vector[1]
+  velz = rand_Vector[2]
+
+  accx = 0.0
+  accy = 0.0
+  accz = 0.0
+  return init_x, init_y, init_z, velx, vely, velz, accx, accy, accz
+
 def run(args):
   """
     Runs the simulator
   """
   starttime = time.time()
   logging.debug(f"run time {starttime}")
+  init_x, init_y, init_z, velx, vely, velz, accx, accy, accz = initialize_track_creation()
+  sim = Simulator(init_x, init_y, init_z,
+                  x_vel=velx, y_vel=vely, z_vel=velz, 
+                  x_acc=accx, y_acc=accy, z_acc=accz, 
+                      time=0)
+  f = None
+  if (args.filepath):
+    f = open(args.filepath, 'w')
+    f.write("# Measurement time, meas_x, meas_y, meas_z, true_x, true_y, true_z, true_velx, true_vely, true_velz, true_accx, true_accy, true_accz\n")
 
-  # Set initial positions for the targets to be simulated
-  sim = Simulator(10, 12, 13,
-                  x_vel=1, y_vel=2, z_vel=0.5, 
-                      time=starttime)
-  while True:
+  run_time = 0 
+  while run_time < args.time:
     try:
       # Connect to the track consumer
       with grpc.insecure_channel(args.hostport) as channel:
         stub = measurement_pb2_grpc.MeasurementProducerStub(channel)
         # Grab the current time and predict the simulated measurement to this time
-        updatetime = time.time()
+        updatetime = round(time.time() - starttime,3)
         logging.debug(f"updatetiem {updatetime}")
         measurement_update = sim.predict_at_time(updatetime)
         stub.ProcessMeasurement(measurement_update)
+        for i in range(len(measurement_update.measurements)):
+          measurement = measurement_pb2.measurement()
+          measurement.ParseFromString(measurement_update.measurements[i])
+          print(f"measurements{ measurement.time}")
+          if f:
+            f.write(f"{measurement.time},{measurement.x},{measurement.y},{measurement.z},"
+                    f"{measurement.true_x},{measurement.true_y},{measurement.true_z},"
+                    f"{velx},{vely},{velz},"
+                    f"{accx},{accy},{accz}\n")
         # repeat measurement production every 5 seconds
-        time.sleep(5)
+        time.sleep(2)
     except grpc.RpcError as rpc_error:
       # Failed to connect, retry in 5 seconds
       logging.warning(f"failed to connect {rpc_error.code()}, retry in 5 seconds")
       time.sleep(5)
+    run_time = time.time() - starttime
+  if f:
+    f.close()
 
 
 if __name__ == "__main__":

@@ -33,9 +33,12 @@ message track_group{
 
 // The response message containing the greetings
 message track {
-  repeated bytes measurements = 1;
-  double x_velocity = 2;
-  double y_velocity = 3;
-  double z_velocity = 4;
-  int32 track_id = 5;
+  int32 track_id = 1;
+  double x_pred_pos = 2;
+  double y_pred_pos = 3;
+  double z_pred_pos = 4;
+  double x_velocity = 5;
+  double y_velocity = 6;
+  double z_velocity = 7;
+  repeated bytes measurements = 8;
 }

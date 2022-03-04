@@ -5,7 +5,7 @@ from google.protobuf import text_format
 
 import measurement_pb2
 
-class TrackInterface:
+class trackStrategyInterface:
   __metaclass__ = ABCMeta
   @classmethod
   def version(self): 
